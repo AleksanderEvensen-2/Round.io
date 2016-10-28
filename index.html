@@ -1,0 +1,288 @@
+<canvas id="ctx" width="1350" height="600"></canvas>
+
+
+<!--
+Et spill av:    Aleksander & Co
+  _  __
+ | |/ /
+ | ' / ___  ___ _ __      __ ___      ____ _ _   _
+ |  < / _ \/ _ \ '_ \    / _` \ \ /\ / / _` | | | |
+ | . \  __/  __/ |_) |  | (_| |\ V  V / (_| | |_| |
+ |_|\_\___|\___| .__/    \__,_| \_/\_/ \__,_|\__, |
+               | |                            __/ |
+               |_|                           |___/
+Ikke Endre på denne filen
+detter er et spill som ikke skal bli endret eller Kopiert
+Spesielt av > Oliver <
+MvH ::  Aleksander
+-->
+
+
+
+
+
+
+<style>
+
+
+@import url('https://fonts.googleapis.com/css?family=Russo+One');
+
+body {
+  margin: 0;
+}
+canvas {
+  width: 100%;
+  height: 100%;
+}
+</style>
+
+
+
+
+<script>
+var ctx = document.getElementById("ctx").getContext("2d");
+ctx.font = '30px Arial';
+var Width = 1350;
+var Height = 600;
+var playDeath = false;
+var MouseProp = {
+  x:0,
+  y:0,
+  radius:-9,
+  width:1,
+  height:1,
+}
+
+var clicked = false;
+
+
+document.onmousemove = function(e){
+  MouseProp.x = e.clientX;
+  MouseProp.y = e.clientY;
+}
+
+document.onmousedown = function(){
+  clicked = true;
+}
+
+document.onmouseup = function(){
+  clicked = false;
+}
+
+
+
+
+
+
+
+isColliding = function (entity1, entity2){
+  var a;
+  var x;
+  var y;
+  a = entity1.radius + entity2.radius;
+  x = entity1.x - entity2.x;
+  y = entity1.y - entity2.y;
+  if ( a > Math.sqrt( (x*x) + (y*y) ) ) {
+      return true;
+  }
+  else {
+      return false;
+  }
+}
+
+
+
+isCollidingRect = function (entity1, entity2){
+  if (entity1.x < entity2.x + entity2.width &&
+   entity1.x + entity1.width > entity2.x &&
+   entity1.y < entity2.y + entity2.height &&
+   entity1.height + entity1.y > entity2.y) {
+    return true;
+  }
+  return false;
+}
+
+
+
+
+
+
+
+
+
+
+
+createEntity = function (x, y, spd, radius, type, color){
+  var self = {
+    x:x,
+    y:y,
+    type:type,
+    color:color,
+    spd:spd,
+    radius:radius,
+    hp:4,
+  }
+  self.goAfter = function(obj){
+    if(self.type === 'Enemy'){
+      var tx = obj.x - self.x,
+          ty = obj.y - self.y,
+          dist = Math.sqrt(tx*tx+ty*ty),
+          rad = Math.atan2(ty,tx),
+          angle = rad/Math.PI * 180;;
+        self.spdX = (tx/dist)*self.spd;
+        self.spdY = (ty/dist)*self.spd;
+        self.x += self.spdX;
+        self.y += self.spdY;
+    }
+    if(type === 'Actor'){
+      var oldX = self.x;
+      var oldY = self.y;
+      var tx = obj.x - self.x,
+          ty = obj.y - self.y,
+          dist = Math.sqrt(tx*tx+ty*ty),
+          rad = Math.atan2(ty,tx),
+          angle = rad/Math.PI * 180;;
+      self.spdX = (tx/dist)*self.spd;
+      self.spdY = (ty/dist)*self.spd;
+      self.x += self.spdX;
+      self.y += self.spdY;
+      if(self.x + self.width >= Width || self.x <= 0){
+        self.x = oldX;
+      }
+      if(self.y + self.height >= Height || self.y <= 0){
+        self.y = oldY;
+      }
+    }
+  }
+  self.updatePos = function () {
+  }
+  self.draw = function(){
+    ctx.save();
+    ctx.fillStyle = self.color;
+    ctx.beginPath();
+    ctx.arc(self.x, self.y, self.radius, 0, 2 * Math.PI, false);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+  self.update = function () {
+    self.updatePos();
+    self.draw();
+  }
+  return self;
+}
+var enemyList = [];
+var enemyList2 = [];
+function genEnemy(){
+  var x = Math.floor(Math.random()*Width);
+  var y = Math.floor(Math.random()*Height);
+  var e = createEntity(x, y, 0.9, 10, 'Enemy', '#ff8484');
+  enemyList[enemyList.length + 1] = e;
+  enemyList2[enemyList2.length + 1] = e;
+}
+genEnemy();
+var player = createEntity(200, 200, 1, 10, 'Actor', '#b4ffad');
+var deathProperty = {
+  width:1
+}
+var count = 0;
+function update() {
+  Width = window.innerWidth;
+  Height = window.innerHeight;
+  document.getElementById('ctx').width = window.innerWidth;
+  document.getElementById('ctx').height = window.innerHeight;
+  if(!playDeath){
+    count++;
+    ctx.clearRect(0,0,Width,Height);
+    ctx.save();
+    ctx.fillStyle = "#011f4f";
+    ctx.fillRect(0,0,Width, Height);
+    ctx.restore();
+    if(count % (0.5 * 1000) === 0){
+      genEnemy();
+    }
+    for(var key in enemyList){
+      var oldX = enemyList[key].x;
+      var oldY = enemyList[key].y;
+      enemyList[key].update();
+      enemyList[key].goAfter(player);
+      for(var yey in enemyList2){
+        if(enemyList[key] !== enemyList2[yey]){
+          if(isColliding(enemyList[key], enemyList2[yey])){
+            enemyList[key].x = oldX;
+            enemyList[key].y = oldY;
+          }
+        }
+      }
+    }
+    for(var key in enemyList){
+      if(isColliding(enemyList[key], player)){
+        delete enemyList[key];
+        player.hp -= 1;
+      }
+    }
+    if(!isColliding(player, MouseProp)){
+      player.goAfter(MouseProp);
+    }
+    if(player.hp <= 0){
+      playDeath = true;
+    }
+    player.update();
+  }
+  else if(playDeath){
+    count = 0;
+    enemyList = [];
+    enemyList2 = [];
+    ctx.clearRect(0,0,Width,Height);
+    ctx.save();
+    ctx.fillStyle = "#011f4f";
+    ctx.fillRect(0,0,Width, Height);
+    ctx.restore();
+    ctx.fillRect(0, 0, deathProperty.width, Height);
+    if(deathProperty.width <= Width){
+      deathProperty.width += 6;
+    }
+    else if(deathProperty.width >= Width){
+
+
+      var restartButton = {
+        x:Width/2 - 130,
+        y:Height - 300,
+        width:150,
+        height:65,
+        color:'#e2fcb5'
+      }
+
+      ctx.save();
+      ctx.fillStyle = restartButton.color;
+      ctx.fillRect(restartButton.x, restartButton.y, restartButton.width, restartButton.height);
+      ctx.restore();
+
+
+      ctx.save();
+      ctx.fillStyle = '#011f4f'
+      ctx.font = '28px Rousso One';
+      ctx.fillText('Restart', restartButton.x + 20, restartButton.y + 35);
+      ctx.fillStyle = 'white';
+      ctx.fillText('Ps: Press on the start Button', restartButton.x - 130, restartButton.y - 20)
+      ctx.restore();
+
+      ctx.save();
+      ctx.font = '68px Rousso One';
+      ctx.fillStyle = 'orangered';
+      ctx.fillText  ('Game Over', Width/2 - 220, Height/2 -170);
+      ctx.restore();
+      if(clicked && isCollidingRect(restartButton, MouseProp)){
+
+        deathProperty.width = 0;
+        count = 0;
+        enemyList = [];
+        enemyList2 = [];
+        player = createEntity(200, 200, 1, 10, 'Actor', '#b4ffad');
+        playDeath = false;
+      }
+    }
+  }
+}
+setInterval(update,1000/1000)
+</script>
